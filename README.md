@@ -27,13 +27,11 @@ class SimpletonConsultant extends RequestResponseActor{
 
 ###how does it work?
 Basically, behind the futures and the promises, it transmits every request in a `Request(id:Int, content:Any)`, and when it receives `Response(id, result)` it completes the future that corresponds to id with `result`. It supplies a special implicit execution context to apply to callbacks attached to the futures waiting for a response message that ensures they're executed while the message is being processed, thus ensuring the Actor has exclusive access to its state during that time.
-###have you tested this heavily enough to know that it's actually avoiding race conditions?
-...n-no, sir...
 ###caveats?
 Yeah I'd guess there's a *reason* this isn't default behavior in akka...
 
-* Precludes the use the `receive` partialfunction method(you define takeQuery and takeStatement pfs instead), so you can't do the state machine thing. Transitioning to another actor state will actually silently break request-response behavior. I should probably make that less silent or provide my own partial function switching. I'd need to survey demand cause that's yet to appeal to me, personally.
+* Precludes the use the `receive` partialfunction method(you define takeQuery and takeStatement pfs instead), so you can't do the state machine thing. Transitioning to another actor state will actually silently break request-response behavior. I should probably make that less silent or provide my own partial function switching. I'd need to survey demand cause that's yet to appeal to me, personally. I never put up with it long enough to be sure, but it seems to me that a lot of the use cases for state transitions were a result of the limitations on the ask pattern. We're transcending those here, so it may be that one feature obviates the other. Discussion welcomed.
 
 * Methods executed during responses to futures(like `then`, `map`) will block the actor due to the implicit blunt execution context, meaning in the rare case when you want to `Future{ ... }` an operation off into a separate thread, it will happen in the actor thread instead. Calling `Future({ ... }, scala.concurrent.ExecutionContext.global)` in these cases will provide the expected behavior.
 
-Of course, I don't consider either of these significant enough to put up with the default.
+Of course, *I* don't consider either of these issues to be significant enough to put up with the default.
